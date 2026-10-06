@@ -1,5 +1,6 @@
 package com.gutierrez.modaapp
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -19,6 +20,15 @@ class LoginActivity : AppCompatActivity() {
 
         usuarioDao = UsuarioDao(this)
 
+        // Si ya hay sesión guardada, entra directo al menú
+        val prefs = getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        val usuarioGuardado = prefs.getString("usuario", null)
+        if (usuarioGuardado != null) {
+            startActivity(Intent(this, MenuActivity::class.java))
+            finish()
+            return
+        }
+
         binding.btnIngresar.setOnClickListener {
             val usuario = binding.etUsuario.text.toString().trim()
             val clave = binding.etClave.text.toString().trim()
@@ -32,6 +42,7 @@ class LoginActivity : AppCompatActivity() {
 
             val u = usuarioDao.validarUsuario(usuario, clave)
             if (u != null) {
+                prefs.edit().putString("usuario", u.usuario).apply()
                 startActivity(Intent(this, MenuActivity::class.java))
                 finish()
             } else {

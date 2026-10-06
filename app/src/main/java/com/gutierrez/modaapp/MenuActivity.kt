@@ -27,6 +27,7 @@ class MenuActivity : AppCompatActivity() {
             startActivity(Intent(this, ReportesActivity::class.java))
         }
         binding.btnSalir.setOnClickListener {
+            getSharedPreferences("sesion", MODE_PRIVATE).edit().clear().apply()
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
         }

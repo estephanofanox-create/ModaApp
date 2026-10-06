@@ -1,5 +1,6 @@
 package com.gutierrez.modaapp
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -86,6 +87,11 @@ class PedidoActivity : AppCompatActivity() {
         if (idPedido > 0) {
             Toast.makeText(this, "Pedido #$idPedido registrado", Toast.LENGTH_LONG).show()
             Carrito.vaciar()
+
+            val i = Intent(this, WhatsappActivity::class.java)
+            i.putExtra("idPedido", idPedido.toInt())
+            i.putExtra("telefono", tel)
+            startActivity(i)
             finish()
         } else {
             toast("Error al registrar pedido")
