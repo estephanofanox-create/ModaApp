@@ -22,47 +22,78 @@ class RopaDao(context: Context) {
         return db.insert(DBHelper.T_ROPA, null, cv)
     }
 
-    fun listar(): List<Ropa> {
-        val lista = mutableListOf<Ropa>()
+    fun actualizar(r: Ropa): Int {
+        val cv = ContentValues().apply {
+            put("modelo", r.modelo)
+            put("id_categoria", r.idCategoria)
+            put("talla", r.talla)
+            put("marca", r.marca)
+            put("color", r.color)
+            put("precio", r.precio)
+            put("cantidad", r.cantidad)
+            put("foto", r.foto)
+        }
+        return db.update(DBHelper.T_ROPA, cv, "id = ?", arrayOf(r.id.toString()))
+    }
+
+    fun eliminar(id: Int): Int {
+        return db.delete(DBHelper.T_ROPA, "id = ?", arrayOf(id.toString()))
+    }
+
+    fun obtener(id: Int): Ropa? {
         val cursor = db.rawQuery(
             "SELECT id, modelo, id_categoria, talla, marca, color, precio, cantidad, foto " +
-                    "FROM ${DBHelper.T_ROPA} ORDER BY id DESC", null
+                    "FROM ${DBHelper.T_ROPA} WHERE id = ?", arrayOf(id.toString())
         )
-        while (cursor.moveToNext()) {
-            lista.add(
-                Ropa(
-                    id = cursor.getInt(0),
-                    modelo = cursor.getString(1),
-                    idCategoria = cursor.getInt(2),
-                    talla = cursor.getString(3),
-                    marca = cursor.getString(4),
-                    color = cursor.getString(5),
-                    precio = cursor.getDouble(6),
-                    cantidad = cursor.getInt(7),
-                    foto = cursor.getString(8)
-                )
+        return if (cursor.moveToFirst()) {
+            val r = Ropa(
+                id = cursor.getInt(0),
+                modelo = cursor.getString(1),
+                idCategoria = cursor.getInt(2),
+                talla = cursor.getString(3),
+                marca = cursor.getString(4),
+                color = cursor.getString(5),
+                precio = cursor.getDouble(6),
+                cantidad = cursor.getInt(7),
+                foto = cursor.getString(8)
             )
+            cursor.close()
+            r
+        } else {
+            cursor.close()
+            null
         }
-        cursor.close()
-        return lista
+    }
+
+    fun listar(): List<Ropa> {
+        return consultar(null, null)
     }
 
     fun listarDisponibles(idCategoria: Int?): List<Ropa> {
-        val lista = mutableListOf<Ropa>()
-        val sql: String
-        val args: Array<String>?
-
-        if (idCategoria == null) {
-            sql = "SELECT id, modelo, id_categoria, talla, marca, color, precio, cantidad, foto " +
-                    "FROM ${DBHelper.T_ROPA} WHERE cantidad > 0 ORDER BY id DESC"
-            args = null
+        return if (idCategoria == null) {
+            consultar("cantidad > 0", null)
         } else {
-            sql = "SELECT id, modelo, id_categoria, talla, marca, color, precio, cantidad, foto " +
-                    "FROM ${DBHelper.T_ROPA} WHERE cantidad > 0 AND id_categoria = ? ORDER BY id DESC"
-            args = arrayOf(idCategoria.toString())
+            consultar("cantidad > 0 AND id_categoria = ?", arrayOf(idCategoria.toString()))
         }
+    }
 
-        val cursor = db.rawQuery(sql, args)
+    fun listarConFiltro(filtro: String): List<Ropa> {
+        val like = "%$filtro%"
+        return consultar(
+            "modelo LIKE ? OR marca LIKE ? OR color LIKE ?",
+            arrayOf(like, like, like)
+        )
+    }
+
+    private fun consultar(where: String?, args: Array<String>?): List<Ropa> {
+        val lista = mutableListOf<Ropa>()
+        val sql = StringBuilder(
+            "SELECT id, modelo, id_categoria, talla, marca, color, precio, cantidad, foto FROM ${DBHelper.T_ROPA}"
+        )
+        if (!where.isNullOrEmpty()) sql.append(" WHERE $where")
+        sql.append(" ORDER BY id DESC")
+
+        val cursor = db.rawQuery(sql.toString(), args)
         while (cursor.moveToNext()) {
             lista.add(
                 Ropa(

@@ -1,10 +1,13 @@
 package com.gutierrez.modaapp
 
+import android.app.AlertDialog
+import android.database.sqlite.SQLiteConstraintException
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.gutierrez.modaapp.data.CategoriaDao
@@ -22,6 +25,7 @@ class RopaFormActivity : AppCompatActivity() {
     private lateinit var ropaDao: RopaDao
     private var categorias: List<Categoria> = emptyList()
     private var rutaFoto: String? = null
+    private var idEditar: Int = 0
 
     private val pickFoto = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
         if (uri != null) {
@@ -56,14 +60,36 @@ class RopaFormActivity : AppCompatActivity() {
         )
 
         binding.btnElegirFoto.setOnClickListener {
-            pickFoto.launch(
-                androidx.activity.result.PickVisualMediaRequest(
-                    ActivityResultContracts.PickVisualMedia.ImageOnly
-                )
-            )
+            pickFoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
 
         binding.btnGuardar.setOnClickListener { guardar() }
+        binding.btnEliminar.setOnClickListener { confirmarEliminar() }
+
+        idEditar = intent.getIntExtra("id", 0)
+        if (idEditar > 0) cargarParaEditar(idEditar)
+    }
+
+    private fun cargarParaEditar(id: Int) {
+        val r = ropaDao.obtener(id) ?: return
+        binding.etModelo.setText(r.modelo)
+        binding.etMarca.setText(r.marca)
+        binding.etColor.setText(r.color)
+        binding.etPrecio.setText(r.precio.toString())
+        binding.etCantidad.setText(r.cantidad.toString())
+        rutaFoto = r.foto
+
+        val posCat = categorias.indexOfFirst { it.id == r.idCategoria }
+        if (posCat >= 0) binding.spCategoria.setSelection(posCat)
+
+        val posTalla = (binding.spTalla.adapter as ArrayAdapter<String>).getPosition(r.talla)
+        if (posTalla >= 0) binding.spTalla.setSelection(posTalla)
+
+        val file = File(r.foto)
+        if (file.exists()) binding.ivFoto.setImageBitmap(BitmapFactory.decodeFile(file.absolutePath))
+
+        binding.btnGuardar.text = "Actualizar"
+        binding.btnEliminar.visibility = android.view.View.VISIBLE
     }
 
     private fun guardar() {
@@ -85,7 +111,7 @@ class RopaFormActivity : AppCompatActivity() {
         if (cantidad < 0) { toast("La cantidad no puede ser negativa"); return }
 
         val ropa = Ropa(
-            id = 0,
+            id = idEditar,
             modelo = modelo,
             idCategoria = categorias[binding.spCategoria.selectedItemPosition].id,
             talla = binding.spTalla.selectedItem.toString(),
@@ -96,13 +122,32 @@ class RopaFormActivity : AppCompatActivity() {
             foto = rutaFoto!!
         )
 
-        val id = ropaDao.insertar(ropa)
-        if (id > 0) {
-            Toast.makeText(this, "Prenda guardada", Toast.LENGTH_SHORT).show()
-            finish()
+        if (idEditar == 0) {
+            if (ropaDao.insertar(ropa) > 0) {
+                toast("Prenda guardada"); finish()
+            } else toast("Error al guardar")
         } else {
-            toast("Error al guardar")
+            if (ropaDao.actualizar(ropa) > 0) {
+                toast("Prenda actualizada"); finish()
+            } else toast("Error al actualizar")
         }
+    }
+
+    private fun confirmarEliminar() {
+        AlertDialog.Builder(this)
+            .setTitle("Eliminar prenda")
+            .setMessage("¿Seguro que deseas eliminar esta prenda?")
+            .setPositiveButton("Sí") { _, _ ->
+                try {
+                    if (ropaDao.eliminar(idEditar) > 0) {
+                        toast("Prenda eliminada"); finish()
+                    } else toast("No se pudo eliminar")
+                } catch (e: SQLiteConstraintException) {
+                    toast("No se puede eliminar: tiene pedidos")
+                }
+            }
+            .setNegativeButton("No", null)
+            .show()
     }
 
     private fun toast(msg: String) {

@@ -1,6 +1,10 @@
 package com.gutierrez.modaapp
 
+import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
+import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
@@ -9,6 +13,7 @@ import com.gutierrez.modaapp.data.CategoriaDao
 import com.gutierrez.modaapp.data.RopaDao
 import com.gutierrez.modaapp.databinding.ActivityCatalogoBinding
 import com.gutierrez.modaapp.model.Categoria
+import com.gutierrez.modaapp.model.Ropa
 
 class CatalogoActivity : AppCompatActivity() {
 
@@ -27,11 +32,13 @@ class CatalogoActivity : AppCompatActivity() {
         categoriaDao = CategoriaDao(this)
         ropaDao = RopaDao(this)
 
-        adapter = CatalogoAdapter(emptyList()) { ropa ->
-            Toast.makeText(this, "Tocaste: ${ropa.modelo}", Toast.LENGTH_SHORT).show()
-        }
+        adapter = CatalogoAdapter(emptyList()) { ropa -> preguntarCantidad(ropa) }
         binding.rvCatalogo.layoutManager = GridLayoutManager(this, 2)
         binding.rvCatalogo.adapter = adapter
+
+        binding.tvCarrito.setOnClickListener {
+            startActivity(Intent(this, CarritoActivity::class.java))
+        }
 
         categorias = categoriaDao.listar()
         armarChips()
@@ -39,7 +46,6 @@ class CatalogoActivity : AppCompatActivity() {
     }
 
     private fun armarChips() {
-        // Chip "Todas"
         val chipTodas = Chip(this).apply {
             text = "Todas"
             isCheckable = true
@@ -68,8 +74,42 @@ class CatalogoActivity : AppCompatActivity() {
         adapter.actualizar(ropaDao.listarDisponibles(idCategoria))
     }
 
+    private fun preguntarCantidad(ropa: Ropa) {
+        val input = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            hint = "Cantidad (Disponible: ${ropa.cantidad})"
+        }
+        AlertDialog.Builder(this)
+            .setTitle(ropa.modelo)
+            .setMessage("Disponible: ${ropa.cantidad}")
+            .setView(input)
+            .setPositiveButton("Agregar") { _, _ ->
+                val cant = input.text.toString().trim().toIntOrNull()
+                if (cant == null || cant <= 0) {
+                    toast("Cantidad inválida"); return@setPositiveButton
+                }
+                if (cant > ropa.cantidad) {
+                    toast("Solo hay ${ropa.cantidad} disponibles"); return@setPositiveButton
+                }
+                Carrito.agregar(ropa, cant)
+                actualizarContador()
+                toast("Agregado al carrito")
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun actualizarContador() {
+        binding.tvCarrito.text = "Carrito (${Carrito.cantidadTotal()})"
+    }
+
+    private fun toast(msg: String) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+    }
+
     override fun onResume() {
         super.onResume()
         cargarRopa(idCategoriaActual)
+        actualizarContador()
     }
 }

@@ -3,6 +3,7 @@ package com.gutierrez.modaapp
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gutierrez.modaapp.data.RopaDao
 import com.gutierrez.modaapp.databinding.ActivityRopaBinding
@@ -21,7 +22,9 @@ class RopaActivity : AppCompatActivity() {
         ropaDao = RopaDao(this)
 
         adapter = RopaAdapter(emptyList()) { ropa ->
-            // Por ahora nada (HU-07 lo usará)
+            val i = Intent(this, RopaFormActivity::class.java)
+            i.putExtra("id", ropa.id)
+            startActivity(i)
         }
         binding.rvRopa.layoutManager = LinearLayoutManager(this)
         binding.rvRopa.adapter = adapter
@@ -29,10 +32,18 @@ class RopaActivity : AppCompatActivity() {
         binding.btnNueva.setOnClickListener {
             startActivity(Intent(this, RopaFormActivity::class.java))
         }
+
+        binding.etBuscar.doAfterTextChanged { texto ->
+            val q = texto?.toString()?.trim().orEmpty()
+            if (q.isEmpty()) adapter.actualizar(ropaDao.listar())
+            else adapter.actualizar(ropaDao.listarConFiltro(q))
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        adapter.actualizar(ropaDao.listar())
+        val q = binding.etBuscar.text?.toString()?.trim().orEmpty()
+        if (q.isEmpty()) adapter.actualizar(ropaDao.listar())
+        else adapter.actualizar(ropaDao.listarConFiltro(q))
     }
 }

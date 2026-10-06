@@ -147,10 +147,23 @@
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginTop="24dp"
-            android:layout_marginBottom="20dp"
             android:text="Guardar"
             android:textAllCaps="false"
             app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnEliminar"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="20dp"
+            android:text="Eliminar"
+            android:textAllCaps="false"
+            android:visibility="gone"
+            app:cornerRadius="12dp"
+            app:strokeColor="@color/rosa_principal"
+            android:textColor="@color/rosa_principal" />
 
     </LinearLayout>
 </ScrollView>

@@ -8,11 +8,14 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
 
     companion object {
         const val DB_NAME = "modaapp.db"
-        const val DB_VERSION = 1
+        const val DB_VERSION = 2
 
         const val T_USUARIO = "usuario"
         const val T_CATEGORIA = "categoria"
         const val T_ROPA = "ropa"
+        const val T_CLIENTE = "cliente"
+        const val T_PEDIDO = "pedido"
+        const val T_DETALLE = "detalle_pedido"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -56,9 +59,50 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
         for (c in categorias) {
             db.execSQL("INSERT INTO $T_CATEGORIA (nombre) VALUES ('$c')")
         }
+
+        crearTablasV2(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Sprint 3 lo usará
+        if (oldVersion < 2) {
+            crearTablasV2(db)
+        }
+    }
+
+    private fun crearTablasV2(db: SQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS $T_CLIENTE (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telefono TEXT UNIQUE,
+                nombres TEXT,
+                apellidos TEXT,
+                fecha_registro TEXT
+            )
+        """)
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS $T_PEDIDO (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_cliente INTEGER,
+                fecha TEXT,
+                total REAL,
+                estado TEXT,
+                fecha_atencion TEXT,
+                FOREIGN KEY (id_cliente) REFERENCES $T_CLIENTE(id)
+            )
+        """)
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS $T_DETALLE (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_pedido INTEGER,
+                id_ropa INTEGER,
+                cantidad INTEGER CHECK(cantidad > 0),
+                precio_unit REAL,
+                subtotal REAL,
+                FOREIGN KEY (id_pedido) REFERENCES $T_PEDIDO(id) ON DELETE CASCADE,
+                FOREIGN KEY (id_ropa) REFERENCES $T_ROPA(id)
+            )
+        """)
     }
 }
