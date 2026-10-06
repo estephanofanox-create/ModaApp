@@ -24,7 +24,7 @@
         <activity android:name=".PedidosActivity" android:exported="false" />
         <activity android:name=".ClientesActivity" android:exported="false" />
         <activity android:name=".ReportesActivity" android:exported="false" />
-
+        <activity android:name=".RopaFormActivity" android:exported="false" />
     </application>
 
 </manifest>
